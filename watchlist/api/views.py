@@ -5,16 +5,25 @@ from watchlist.api.serializers import WatchListSerializer, StreamPlatformSeriali
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework import generics, mixins
-
+from rest_framework.exceptions import ValidationError
 
 class ReviewCreate(generics.CreateAPIView):
     serializer_class = ReviewSerializer
+    
+    def get_queryset(self):
+        return Review.objects.all()
     
     def perform_create(self, serializer):
         pk = self.kwargs.get('pk')
         movie = WatchList.objects.get(pk=pk)
         
-        serializer.save(watchlist= movie)
+        review_author = self.request.user
+        review_queryset = Review.objects.filter(watchlist= movie, review_author=review_author)
+        
+        if review_queryset.exists():
+            raise ValidationError('Reviews already exist')
+        
+        serializer.save(watchlist= movie, review_author=review_author)
         
 
 class ReviewList(generics.ListAPIView):

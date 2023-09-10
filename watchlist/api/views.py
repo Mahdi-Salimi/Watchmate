@@ -6,10 +6,12 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework import generics, mixins
 from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from watchlist.api.permissions import AdminOrReadOnly, ReviewUserOrReadOnly
 
 class ReviewCreate(generics.CreateAPIView):
     serializer_class = ReviewSerializer
-    
+    permission_classes = [ReviewUserOrReadOnly]
     def get_queryset(self):
         return Review.objects.all()
     
@@ -23,12 +25,21 @@ class ReviewCreate(generics.CreateAPIView):
         if review_queryset.exists():
             raise ValidationError('Reviews already exist')
         
-        serializer.save(watchlist= movie, review_author=review_author)
+        # if movie.number_rating == 0 :
+        #     movie.avg_rating = serializer.validated_data['rating']
+        # else :
+        #     movie.avg_rating = (movie.avg_rating * movie.number_rating + serializer.validated_data['rating']) / (movie.number_rating + 1)
+        
+        # movie.number_rating = movie.number_rating + 1
+        
+        # movie.save()
+        
+        serializer.save( watchlist= movie, review_author=review_author)
         
 
 class ReviewList(generics.ListAPIView):
     serializer_class= ReviewSerializer
-    
+    permission_classes = [IsAuthenticatedOrReadOnly]
     def get_queryset(self):
         pk = self.kwargs['pk']
         return Review.objects.filter(watchlist=pk)
@@ -36,6 +47,8 @@ class ReviewList(generics.ListAPIView):
 class ReviewDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset= Review.objects.all()
     serializer_class= ReviewSerializer
+    permission_classes = [ReviewUserOrReadOnly]
+
 
 
 # class ReviewDetail(mixins.RetrieveModelMixin,

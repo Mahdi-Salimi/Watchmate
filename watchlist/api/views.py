@@ -11,7 +11,7 @@ from watchlist.api.permissions import AdminOrReadOnly, ReviewUserOrReadOnly
 
 class ReviewCreate(generics.CreateAPIView):
     serializer_class = ReviewSerializer
-    permission_classes = [ReviewUserOrReadOnly]
+    permission_classes = [IsAuthenticated]
     def get_queryset(self):
         return Review.objects.all()
     
@@ -21,25 +21,40 @@ class ReviewCreate(generics.CreateAPIView):
         
         review_author = self.request.user
         review_queryset = Review.objects.filter(watchlist= movie, review_author=review_author)
+        review_queryset2 = Review.objects.filter(watchlist= movie)
+
         
         if review_queryset.exists():
-            raise ValidationError('Reviews already exist')
+            raise ValidationError('Review already exists')
         
-        # if movie.number_rating == 0 :
-        #     movie.avg_rating = serializer.validated_data['rating']
-        # else :
-        #     movie.avg_rating = (movie.avg_rating * movie.number_rating + serializer.validated_data['rating']) / (movie.number_rating + 1)
         
-        # movie.number_rating = movie.number_rating + 1
+        # for review in review_queryset2:
+        #     if movie.number_rating == 0 :
+        #         movie.avg_rating = serializer.validated_data['rating']
+        #     else :
+        #         movie.avg_rating = (movie.avg_rating * movie.number_rating + serializer.validated_data['rating']) / (movie.number_rating + 1)
+            
+        #     movie.number_rating = movie.number_rating + 1
         
-        # movie.save()
+        
+        if movie.number_rating == 0 :
+            movie.avg_rating = serializer.validated_data['rating']
+        else :
+            sum_rating = 0
+            for review in review_queryset2:
+                sum_rating = sum_rating + review.rating
+            movie.avg_rating = (sum_rating + serializer.validated_data['rating']) / (movie.number_rating + 1)
+        
+        movie.number_rating = movie.number_rating + 1
+        
+        movie.save()
         
         serializer.save( watchlist= movie, review_author=review_author)
         
 
 class ReviewList(generics.ListAPIView):
     serializer_class= ReviewSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    # permission_classes = [IsAuthenticatedOrReadOnly]
     def get_queryset(self):
         pk = self.kwargs['pk']
         return Review.objects.filter(watchlist=pk)
@@ -75,7 +90,8 @@ class ReviewDetail(generics.RetrieveUpdateDestroyAPIView):
 
 
 class PlatformListAV(APIView):
-    
+    permission_classes =[AdminOrReadOnly]
+
     def get(self, request):
         platforms = StreamPlatform.objects.all()
         serializer = StreamPlatformSerializer(platforms, many=True)
@@ -91,7 +107,8 @@ class PlatformListAV(APIView):
 
 
 class PlatformDetailAV(APIView):
-    
+    permission_classes =[AdminOrReadOnly]
+
     def get(self, request, pk):
         
         try:
@@ -121,7 +138,8 @@ class PlatformDetailAV(APIView):
 
 
 class WatchListAV(APIView):
-    
+    permission_classes =[AdminOrReadOnly]
+
     def get(self, request):
         movies = WatchList.objects.all()
         serializer = WatchListSerializer(movies, many=True)
@@ -137,6 +155,7 @@ class WatchListAV(APIView):
 
 
 class WatchDetailAV(APIView):
+    permission_classes =[AdminOrReadOnly]
     
     def get(self, request, pk):
         
